@@ -5,7 +5,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :global-vars {*warn-on-reflection* true}
   :dependencies [[org.clojure/clojure "1.5.1"]
-                 [com.damballa/parkour "0.5.4-SNAPSHOT"]
+                 [com.damballa/parkour "0.5.4"]
                  [org.apache.avro/avro "1.7.5"]
                  [org.apache.avro/avro-mapred "1.7.5"
                   :classifier "hadoop2"]
