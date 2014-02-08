@@ -137,9 +137,10 @@ occurrence frequencies in adjacent decades."
     (into {} trending)))
 
 (defn trending-terms
-  "Calculate the top `topn` trending 1-grams from dseq `ngrams`, writing job
-outputs under `workdir`, and using Hadoop configuration `conf`.  Returns map of
-decade to vectors of trending terms."
+  "Calculate the top `topn` trending 1-grams per decade from Google Books 1-gram
+corpus dseq `ngrams`.  Writes job outputs under `workdir` and configure jobs
+using Hadoop configuration `conf`.  Returns map of initial decade years to
+vectors of trending terms."
   [conf workdir ngrams topn]
   (let [[counts totals] (normalized-j conf workdir ngrams)]
     (trending-j conf workdir topn counts totals)))
