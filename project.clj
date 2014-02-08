@@ -1,8 +1,9 @@
 (defproject trending-terms "0.1.0-SNAPSHOT"
-  :description "Decade-wise trending terms in the Google Books n-grams corpus"
+  :description "Decade-wise trending terms in the Google Books n-grams corpus."
   :url "http://github.com/llasram/trending-terms"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
+  :global-vars {*warn-on-reflection* true}
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [com.damballa/parkour "0.5.4-SNAPSHOT"]
                  [org.apache.avro/avro "1.7.5"]

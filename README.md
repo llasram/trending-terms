@@ -1,36 +1,14 @@
 # trending-terms
 
-FIXME: description
-
-## Installation
-
-Download from http://example.com/FIXME.
-
-## Usage
-
-FIXME: explanation
-
-    $ java -jar trending-terms-0.1.0-standalone.jar [args]
-
-## Options
-
-FIXME: listing of options this app accepts.
-
-## Examples
-
-...
-
-### Bugs
-
-...
-
-### Any Other Sections
-### That You Think
-### Might be Useful
+Example Parkour application for calculating [decade-wise trending terms][terms]
+from the [Google Books n-grams corpus][corpus].
 
 ## License
 
-Copyright © 2014 FIXME
+Copyright © 2014 Marshall Bockrath-Vandegrift
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
+
+[terms]: http://aws.amazon.com/articles/5249664154115844
+[corpus]: http://aws.amazon.com/datasets/8172056142375670

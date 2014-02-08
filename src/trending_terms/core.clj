@@ -3,14 +3,10 @@
             [clojure.core.reducers :as r]
             [transduce.reducers :as tr]
             [abracad.avro :as avro]
-            [abracad.avro.edn :as aedn]
             [parkour (conf :as conf) (fs :as fs) (mapreduce :as mr)
              ,       (graph :as pg) (reducers :as pr)]
             [parkour.io (seqf :as seqf) (avro :as mra) (dux :as dux)
-             ,          (sample :as sample)])
-  (:import [org.apache.hadoop.mapreduce Mapper]))
-
-(set! *warn-on-reflection* true)
+             ,          (sample :as sample)]))
 
 (def ngram-base-url
   "Base URL for Google Books n-gram dataset."
@@ -25,7 +21,7 @@
   [n] (seqf/dseq (ngram-url n)))
 
 (defn parse-record
-  "Parse text-line 1-gram record `rec`."
+  "Parse text-line 1-gram record `rec` into ((gram, decade), n) tuple."
   [rec]
   (let [[gram year n] (str/split rec #"\t")
         gram (str/lower-case gram)
@@ -35,11 +31,13 @@
     [[gram decade] n]))
 
 (defn select-record?
+  "True iff argument record should be included in analysis."
   [[[gram year]]]
   (and (<= 1890 year)
        (re-matches #"^[a-z+'-]+$" gram)))
 
 (defn normalized-m
+  "Parse, normalize, and filter 1-gram records."
   {::mr/source-as :vals, ::mr/sink-as :keyvals}
   [records]
   (->> records
@@ -48,9 +46,12 @@
        (pr/reduce-by first (pr/mjuxt pr/arg1 +) [nil 0])))
 
 (defn nth0-p
+  "Partitioning function for first item of key tuple."
   [k v n] (-> k (nth 0) hash (mod n)))
 
 (defn normalized-r
+  "Collect: tuples of 1-gram and occurrence counts by decade; total 1-gram
+occurrence counts by decade; and counter of total number of 1-grams."
   {::mr/source-as :keyvalgroups,
    ::mr/sink-as (dux/named-keyvals :totals)}
   [input]
@@ -67,6 +68,8 @@
          (seq))))
 
 (defn trending-m
+  "Transform decade-wise 1-gram occurrence counts into negated ratios of
+occurrence frequencies in adjacent decades."
   {::mr/source-as :keyvals, ::mr/sink-as :keyvals}
   [totals input]
   (r/mapcat (fn [[gram counts]]
@@ -84,6 +87,7 @@
             input))
 
 (defn trending-r
+  "Select top `n` 1-grams per decade by negated occurrence frequency ratios."
   {::mr/source-as :keyvalgroups, ::mr/sink-as :keyvals}
   [n input]
   (r/map (fn [[[decade] grams]]
@@ -91,6 +95,9 @@
          input))
 
 (defn trending-terms
+  "Calculate the top `topn` trending 1-grams from dseq `ngrams`, writing job
+outputs under `workdir`, and using Hadoop configuration `conf`.  Returns map of
+decade to vectors of trending terms."
   [conf workdir ngrams topn]
   (let [counts-path (fs/path workdir "counts")
         totals-path (fs/path workdir "totals")
