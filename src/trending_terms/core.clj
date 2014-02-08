@@ -134,7 +134,7 @@ occurrence frequencies in adjacent decades."
               (pg/reduce #'trending-r topn)
               (pg/output (mra/dsink ['long grams-array] trending-path))
               (pg/execute conf "trending"))]
-    (into {} trending)))
+    (into (sorted-map) trending)))
 
 (defn trending-terms
   "Calculate the top `topn` trending 1-grams per decade from Google Books 1-gram
