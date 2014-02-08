@@ -43,7 +43,7 @@
           inpath (fs/path workdir "ngrams")
           ngrams (dsink/with-dseq (seqf/dsink [LongWritable Text] inpath)
                    n1grams-records)
-          trending (tt/trending-terms (th/config) workdir ngrams 1)]
+          trending (tt/trending-terms (th/config) workdir 1 ngrams)]
       (is (= {1950 ["legal"],
               1960 ["assembly"],
               1970 ["astoria"],

@@ -141,6 +141,6 @@ occurrence frequencies in adjacent decades."
 corpus dseq `ngrams`.  Writes job outputs under `workdir` and configure jobs
 using Hadoop configuration `conf`.  Returns map of initial decade years to
 vectors of trending terms."
-  [conf workdir ngrams topn]
+  [conf workdir topn ngrams]
   (let [[counts totals] (normalized-j conf workdir ngrams)]
     (trending-j conf workdir topn counts totals)))
