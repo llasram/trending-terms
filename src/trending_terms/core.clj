@@ -47,7 +47,7 @@
 
 (defn nth0-p
   "Partitioning function for first item of key tuple."
-  [k v n] (-> k (nth 0) hash (mod n)))
+  ^long [k v ^long n] (-> k (nth 0) hash (mod n)))
 
 (defn normalized-r
   "Collect: tuples of 1-gram and occurrence counts by decade; total 1-gram
@@ -66,6 +66,31 @@ occurrence counts by decade; and counter of total number of 1-grams."
                    (merge-with + totals counts))
                  {})
          (seq))))
+
+(defn normalized-j
+  "Run job accumulating maps of decade-wise raw occurrence counts per 1-gram
+and map of total decade-wise Laplace-smoothed occurrence counts."
+  [conf workdir ngrams]
+  (let [counts-path (fs/path workdir "counts")
+        totals-path (fs/path workdir "totals")
+        pkey-as (avro/tuple-schema ['string 'long])
+        counts-as {:type 'array, :items (avro/tuple-schema ['long 'long])}
+        [counts totals]
+        , (-> (pg/input ngrams)
+              (pg/map #'normalized-m)
+              (pg/partition (mra/shuffle pkey-as 'long) #'nth0-p)
+              (pg/reduce #'normalized-r)
+              (pg/output :counts (mra/dsink ['string counts-as] counts-path)
+                         :totals (mra/dsink ['long 'long] totals-path))
+              (pg/execute conf "normalized"))
+        gramsc (-> (mr/counters-map totals)
+                   (get-in ["normalized" "nwords"])
+                   double)
+        fnil+ (fnil + gramsc)
+        totals (reduce (fn [m [d n]]
+                         (update-in m [d] fnil+ n))
+                       {} totals)]
+    [counts totals]))
 
 (defn trending-m
   "Transform decade-wise 1-gram occurrence counts into negated ratios of
@@ -94,31 +119,10 @@ occurrence frequencies in adjacent decades."
            [decade (into [] (r/take n grams))])
          input))
 
-(defn trending-terms
-  "Calculate the top `topn` trending 1-grams from dseq `ngrams`, writing job
-outputs under `workdir`, and using Hadoop configuration `conf`.  Returns map of
-decade to vectors of trending terms."
-  [conf workdir ngrams topn]
-  (let [counts-path (fs/path workdir "counts")
-        totals-path (fs/path workdir "totals")
-        pkey-as (avro/tuple-schema ['string 'long])
-        counts-as {:type 'array, :items (avro/tuple-schema ['long 'long])}
-        [counts totals]
-        , (-> (pg/input ngrams)
-              (pg/map #'normalized-m)
-              (pg/partition (mra/shuffle pkey-as 'long) #'nth0-p)
-              (pg/reduce #'normalized-r)
-              (pg/output :counts (mra/dsink ['string counts-as] counts-path)
-                         :totals (mra/dsink ['long 'long] totals-path))
-              (pg/execute conf "normalized"))
-        gramsc (-> (mr/counters-map totals)
-                   (get-in ["normalized" "nwords"])
-                   double)
-        fnil+ (fnil + gramsc)
-        totals (reduce (fn [m [d n]]
-                         (update-in m [d] fnil+ n))
-                       {} totals)
-        ratio-as (avro/tuple-schema ['long 'double])
+(defn trending-j
+  "Run job selecting trending terms per decade."
+  [conf workdir topn counts totals]
+  (let [ratio-as (avro/tuple-schema ['long 'double])
         ratio+g-as (avro/grouping-schema 1 ratio-as)
         grams-array {:type 'array, :items 'string}
         trending-path (fs/path workdir "trending")
@@ -131,3 +135,11 @@ decade to vectors of trending terms."
               (pg/output (mra/dsink ['long grams-array] trending-path))
               (pg/execute conf "trending"))]
     (into {} trending)))
+
+(defn trending-terms
+  "Calculate the top `topn` trending 1-grams from dseq `ngrams`, writing job
+outputs under `workdir`, and using Hadoop configuration `conf`.  Returns map of
+decade to vectors of trending terms."
+  [conf workdir ngrams topn]
+  (let [[counts totals] (normalized-j conf workdir ngrams)]
+    (trending-j conf workdir topn counts totals)))
