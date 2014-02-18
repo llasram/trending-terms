@@ -3,7 +3,6 @@
   :url "http://github.com/llasram/trending-terms"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :global-vars {*warn-on-reflection* true}
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [com.damballa/parkour "0.5.4"]
                  [org.apache.avro/avro "1.7.5"]
@@ -24,6 +23,6 @@
                              [org.slf4j/slf4j-log4j12 "1.6.1"]
                              [log4j "1.2.17"]]}
              :test {:resource-paths ["test-resources"]}
-             :aot {:aot :all, :compile-path "%s/aot/class"}
+             :aot {:aot :all, :compile-path "target/aot/classes"}
              :uberjar [:aot]
              :jobjar [:aot]})
